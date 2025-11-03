@@ -61,59 +61,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const mp = await mpRes.json();
       console.log("💳 MP payment:", mp.id, mp.status);
 
-      if (mp.status && mp.status !== "cancelled") {
-        const value = mp.transaction_amount || 0;
-        const email = mp.payer?.email || mp.additional_info?.payer?.email || null;
-
-        const visitor_id =
-          mp.metadata?.visitor_id ||
-          mp.additional_info?.items?.[0]?.id ||
-          null;
-
-        const utm_source = mp.metadata?.utm_source || null;
-        const utm_medium = mp.metadata?.utm_medium || null;
-        const utm_campaign = mp.metadata?.utm_campaign || null;
-
-        const payload = {
-          event: "purchase",
-          value,
-          currency: "BRL",
-          transaction_id: String(mp.id),
-          product: "Scale Turbo Pro",
-          customer_email: email,
-          status: mp.status,
-          visitor_id,
-          utm_source,
-          utm_medium,
-          utm_campaign,
-          notify_app: true,
-        };
-
-        console.log("🚀 Enviando para UTMify:", payload);
-
-        const UTMIFY_KEY = Deno.env.get("UTMIFY_API_KEY");
-        if (!UTMIFY_KEY) {
-          console.error("❌ UTMIFY_API_KEY ausente");
-        } else {
-          const utmRes = await fetch("https://api.utmify.com.br/v1/events", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${UTMIFY_KEY}`,
-            },
-            body: JSON.stringify(payload),
-          });
-          const txt = await utmRes.text();
-          console.log("🎯 UTMify response status:", utmRes.status);
-          console.log("🎯 UTMify response body:", txt);
-          
-          if (utmRes.ok && mp.status === "approved") {
-            console.log("✅ Venda registrada com sucesso");
-          }
-        }
-      } else {
-        console.log("⏸️ Pagamento cancelado ou inválido. Status:", mp.status);
-      }
+      // Log do pagamento (removido envio server-side para UTMify)
+      // O evento será enviado via client-side na página /success
+      console.log("💳 Pagamento processado:", {
+        id: mp.id,
+        status: mp.status,
+        amount: mp.transaction_amount,
+        email: mp.payer?.email,
+      });
+      console.log("ℹ️ Evento será enviado via client-side na página /success");
 
       const elapsed = Date.now() - startTime;
       console.log(`✅ Processamento completo em ${elapsed}ms`);

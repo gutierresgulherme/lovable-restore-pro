@@ -41,9 +41,9 @@ serve(async (req) => {
         email: email,
       },
       back_urls: {
-        success: `${appOrigin}/auth?payment=success`,
+        success: `${appOrigin}/success`,
         failure: `${appOrigin}/auth?payment=failure`,
-        pending: `${appOrigin}/auth?payment=pending`,
+        pending: `${appOrigin}/success`,
       },
       auto_return: 'approved',
       notification_url: `https://${projectRef}.supabase.co/functions/v1/webhook`,

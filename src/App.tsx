@@ -9,6 +9,7 @@ import Create from "./pages/Create";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import WebhookSettings from "./pages/WebhookSettings";
+import Success from "./pages/Success";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/webhook-settings" element={<WebhookSettings />} />
+          <Route path="/success" element={<Success />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
