@@ -99,7 +99,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${UTMIFY_KEY}`,
+              "X-API-Key": UTMIFY_KEY,
             },
             body: JSON.stringify(payload),
           });
