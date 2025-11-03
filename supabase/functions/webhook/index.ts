@@ -3,6 +3,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const startTime = Date.now();
   console.log("📩 Webhook MP recebido:", new Date().toISOString());
 
+  // Read body BEFORE returning response
+  let bodyText = "";
+  try {
+    bodyText = await req.text();
+  } catch (err) {
+    console.error("⚠️ Erro ao ler body:", err);
+  }
+
   // Background processing function
   const processWebhook = async () => {
     try {
@@ -12,18 +20,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
         console.log("ℹ️ Origem não identificada como Mercado Pago (permitindo para testes). UA:", ua, "Origin:", origin);
       }
 
-      const body = await req.json().catch(() => null);
-      if (!body) {
-        console.log("⚠️ Body ausente");
+      let body = null;
+      try {
+        body = JSON.parse(bodyText);
+      } catch {
+        console.log("⚠️ Body não é JSON, tentando converter manualmente...");
+        body = Object.fromEntries(new URLSearchParams(bodyText));
+      }
+
+      console.log("🧾 Body bruto recebido:", bodyText);
+      console.log("📦 Body interpretado:", JSON.stringify(body));
+
+      if (!body || Object.keys(body).length === 0) {
+        console.log("⚠️ Body ausente ou vazio");
         return;
       }
-      console.log("🧾 Body:", JSON.stringify(body));
 
       const paymentId =
         body?.data?.id ||
-        body?.data?.id_payment ||
         body?.id ||
-        body?.resource?.split("/").pop();
+        body?.resource?.split("/").pop() ||
+        (body?.topic?.includes("payment") ? body?.resource?.split("/").pop() : null);
+      
+      console.log("💳 paymentId detectado:", paymentId);
 
       if (!paymentId) {
         console.log("⚠️ paymentId não encontrado no webhook");
@@ -42,7 +61,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const mp = await mpRes.json();
       console.log("💳 MP payment:", mp.id, mp.status);
 
-      if (mp.status === "approved") {
+      if (mp.status && mp.status !== "cancelled") {
         const value = mp.transaction_amount || 0;
         const email = mp.payer?.email || mp.additional_info?.payer?.email || null;
 
@@ -62,7 +81,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           transaction_id: String(mp.id),
           product: "Scale Turbo Pro",
           customer_email: email,
-          status: "approved",
+          status: mp.status,
           visitor_id,
           utm_source,
           utm_medium,
@@ -85,10 +104,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
             body: JSON.stringify(payload),
           });
           const txt = await utmRes.text();
-          console.log("🎯 Resposta UTMify:", utmRes.status, txt);
+          console.log("🎯 UTMify response status:", utmRes.status);
+          console.log("🎯 UTMify response body:", txt);
+          
+          if (utmRes.ok && mp.status === "approved") {
+            console.log("✅ Venda registrada com sucesso");
+          }
         }
       } else {
-        console.log("⏸️ Pagamento não aprovado. Status:", mp.status);
+        console.log("⏸️ Pagamento cancelado ou inválido. Status:", mp.status);
       }
 
       const elapsed = Date.now() - startTime;
